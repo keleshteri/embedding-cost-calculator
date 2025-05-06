@@ -1,8 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 
+// Types
+type ModelType = 'embedding' | 'chat';
+type ScenarioType = 'property' | 'query';
+type EmbeddingModel = 'text-embedding-3-small' | 'text-embedding-3-large' | 'text-embedding-ada-002';
+type ChatModel = 'gpt-4-1106' | 'gpt-4o' | 'gpt-4o-mini' | 'gpt-3.5-turbo' | 'o1-mini' | 'o1' | 'claude-3.5-sonnet';
+
 // Simple GPT tokenizer implementation based on character count
 // This is a very simplified approach as accurate tokenization requires a full tokenizer model
-const estimateTokens = (text) => {
+const estimateTokens = (text: string): number => {
   if (!text) return 0;
   
   // Count characters
@@ -15,30 +21,39 @@ const estimateTokens = (text) => {
   return tokenEstimate;
 };
 
-const EmbeddingCostCalculator = () => {
+// Price definitions
+interface EmbeddingModelPricing {
+  [key: string]: number;
+}
+
+interface ChatModelPricing {
+  [key: string]: [number, number]; // [input price, output price]
+}
+
+const EmbeddingCostCalculator: React.FC = () => {
   // State variables
-  const [tokenCount, setTokenCount] = useState(180);
-  const [queryCount, setQueryCount] = useState(4000);
-  const [selectedModel, setSelectedModel] = useState('text-embedding-3-small');
-  const [sampleText, setSampleText] = useState('');
-  const [sampleTokens, setSampleTokens] = useState(0);
-  const [sampleChars, setSampleChars] = useState(0);
-  const [activeTab, setActiveTab] = useState('calculator');
-  const [modelType, setModelType] = useState('embedding');
-  const [inputRatio, setInputRatio] = useState(20); // Default 20% input, 80% output
-  const [totalTokens, setTotalTokens] = useState(0);
-  const [totalCost, setTotalCost] = useState(0);
-  const [scenarioType, setScenarioType] = useState('property'); // 'property' or 'query'
+  const [tokenCount, setTokenCount] = useState<number>(180);
+  const [queryCount, setQueryCount] = useState<number>(4000);
+  const [selectedModel, setSelectedModel] = useState<EmbeddingModel | ChatModel>('text-embedding-3-small');
+  const [sampleText, setSampleText] = useState<string>('');
+  const [sampleTokens, setSampleTokens] = useState<number>(0);
+  const [sampleChars, setSampleChars] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<'calculator' | 'tokenizer'>('calculator');
+  const [modelType, setModelType] = useState<ModelType>('embedding');
+  const [inputRatio, setInputRatio] = useState<number>(20); // Default 20% input, 80% output
+  const [totalTokens, setTotalTokens] = useState<number>(0);
+  const [totalCost, setTotalCost] = useState<number>(0);
+  const [scenarioType, setScenarioType] = useState<ScenarioType>('property'); // 'property' or 'query'
   
   // Embedding model pricing data (per 1M tokens)
-  const embeddingModelPricing = {
+  const embeddingModelPricing: EmbeddingModelPricing = {
     'text-embedding-3-small': 0.02,
     'text-embedding-3-large': 0.13,
     'text-embedding-ada-002': 0.10
   };
   
   // Chat model pricing data (per 1M tokens)
-  const chatModelPricing = {
+  const chatModelPricing: ChatModelPricing = {
     // Format: [input price, output price]
     'gpt-4-1106': [10.00, 30.00],
     'gpt-4o': [5.00, 15.00],
@@ -50,7 +65,7 @@ const EmbeddingCostCalculator = () => {
   };
   
   // Token counting for sample text
-  const countTokens = useCallback((text) => {
+  const countTokens = useCallback((text: string): void => {
     const chars = text.length;
     const tokens = estimateTokens(text);
     setSampleChars(chars);
@@ -63,7 +78,7 @@ const EmbeddingCostCalculator = () => {
   }, []);
   
   // Handle model type change
-  const handleModelTypeChange = (type) => {
+  const handleModelTypeChange = (type: ModelType): void => {
     setModelType(type);
     
     // Set appropriate default model when switching types
@@ -75,20 +90,20 @@ const EmbeddingCostCalculator = () => {
   };
 
   // Handle scenario type change
-  const handleScenarioTypeChange = (type) => {
+  const handleScenarioTypeChange = (type: ScenarioType): void => {
     setScenarioType(type);
   };
 
   // Handle text input change
-  const handleTextChange = (e) => {
+  const handleTextChange = (e: React.ChangeEvent<HTMLTextAreaElement>): void => {
     const text = e.target.value;
     setSampleText(text);
     countTokens(text);
   };
 
   // Example property data
-  const showExample = () => {
-    let example;
+  const showExample = (): void => {
+    let example: string;
     
     if (scenarioType === 'property') {
       example = `Basic Property Information:
@@ -110,7 +125,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
   };
   
   // Clear the text area
-  const clearText = () => {
+  const clearText = (): void => {
     setSampleText('');
     setSampleTokens(0);
     setSampleChars(0);
@@ -118,7 +133,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
   
   // Update calculations when inputs change
   useEffect(() => {
-    let totalTokensCalc;
+    let totalTokensCalc: number;
     
     if (scenarioType === 'property') {
       // For property embedding, multiply token count by number of properties
@@ -143,7 +158,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
       const inputTokens = millionTokens * inputRatioDecimal;
       const outputTokens = millionTokens * outputRatioDecimal;
       
-      const [inputPrice, outputPrice] = chatModelPricing[selectedModel];
+      const [inputPrice, outputPrice] = chatModelPricing[selectedModel as ChatModel];
       calculatedCost = (inputTokens * inputPrice) + (outputTokens * outputPrice);
     }
     
@@ -314,7 +329,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
             </label>
             <select
               value={selectedModel}
-              onChange={(e) => setSelectedModel(e.target.value)}
+              onChange={(e) => setSelectedModel(e.target.value as EmbeddingModel | ChatModel)}
               className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               {modelType === 'embedding' ? (
@@ -389,10 +404,10 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
                   <span className="font-semibold">Estimated Output Tokens ({100-inputRatio}%):</span> {(totalTokens * (100-inputRatio) / 100).toLocaleString(undefined, {maximumFractionDigits: 0})}
                 </div>
                 <div className="mb-2">
-                  <span className="font-semibold">Input Cost:</span> ${((totalTokens * inputRatio / 100 / 1000000) * chatModelPricing[selectedModel][0]).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  <span className="font-semibold">Input Cost:</span> ${((totalTokens * inputRatio / 100 / 1000000) * chatModelPricing[selectedModel as ChatModel][0]).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
                 <div className="mb-2">
-                  <span className="font-semibold">Output Cost:</span> ${((totalTokens * (100-inputRatio) / 100 / 1000000) * chatModelPricing[selectedModel][1]).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                  <span className="font-semibold">Output Cost:</span> ${((totalTokens * (100-inputRatio) / 100 / 1000000) * chatModelPricing[selectedModel as ChatModel][1]).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
                 </div>
               </>
             )}
