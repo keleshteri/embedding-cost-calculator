@@ -8,11 +8,7 @@ const estimateTokens = (text) => {
   // Count characters
   const charCount = text.length;
   
-  // Count words (rough estimate)
-  const wordCount = text.split(/\\s+/).filter(Boolean).length;
-  
   // GPT models average around 4 characters per token (very approximate)
-  // But we add a bit of complexity by considering both characters and words
   // This is still just an estimate - a true tokenizer would be more accurate
   const tokenEstimate = Math.ceil(charCount / 4);
   
@@ -94,7 +90,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
     
     setTotalTokens(totalTokensCalc);
     setTotalCost(calculatedCost);
-  }, [tokenCount, propertyCount, selectedModel]);
+  }, [tokenCount, propertyCount, selectedModel, modelPricing]);
   
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white rounded-lg shadow-lg">
