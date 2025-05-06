@@ -1,0 +1,12 @@
+[build]
+  command = "CI=false npm run build"
+  publish = "build"
+
+[build.environment]
+  SKIP_PREFLIGHT_CHECK = "true"
+  CI = "false"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
