@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import ChatSimulation from './ChatSimulation';
 
 // Types
 type ModelType = 'embedding' | 'chat';
@@ -38,7 +39,7 @@ const EmbeddingCostCalculator: React.FC = () => {
   const [sampleText, setSampleText] = useState<string>('');
   const [sampleTokens, setSampleTokens] = useState<number>(0);
   const [sampleChars, setSampleChars] = useState<number>(0);
-  const [activeTab, setActiveTab] = useState<'calculator' | 'tokenizer'>('calculator');
+  const [activeTab, setActiveTab] = useState<'calculator' | 'tokenizer' | 'chat-simulator'>('calculator');
   const [modelType, setModelType] = useState<ModelType>('embedding');
   const [inputRatio, setInputRatio] = useState<number>(20); // Default 20% input, 80% output
   const [totalTokens, setTotalTokens] = useState<number>(0);
@@ -180,10 +181,16 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
           Cost Calculator
         </button>
         <button 
-          className={`px-4 py-2 ${activeTab === 'tokenizer' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg`}
+          className={`px-4 py-2 ${activeTab === 'tokenizer' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg mr-2`}
           onClick={() => setActiveTab('tokenizer')}
         >
           Tokenizer
+        </button>
+        <button 
+          className={`px-4 py-2 ${activeTab === 'chat-simulator' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg`}
+          onClick={() => setActiveTab('chat-simulator')}
+        >
+          Chat Simulator
         </button>
       </div>
       
@@ -221,7 +228,9 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
         </div>
       )}
       
-      {activeTab === 'tokenizer' ? (
+      {activeTab === 'chat-simulator' ? (
+        <ChatSimulation />
+      ) : activeTab === 'tokenizer' ? (
         <div className="mb-6">
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
