@@ -26,6 +26,8 @@ const EmbeddingCostCalculator = () => {
   const [activeTab, setActiveTab] = useState('calculator');
   const [modelType, setModelType] = useState('embedding');
   const [inputRatio, setInputRatio] = useState(20); // Default 20% input, 80% output
+  const [totalTokens, setTotalTokens] = useState(0);
+  const [totalCost, setTotalCost] = useState(0);
   
   // Embedding model pricing data (per 1M tokens)
   const embeddingModelPricing = {
