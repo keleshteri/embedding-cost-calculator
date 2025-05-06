@@ -18,7 +18,7 @@ const estimateTokens = (text) => {
 const EmbeddingCostCalculator = () => {
   // State variables
   const [tokenCount, setTokenCount] = useState(180);
-  const [propertyCount, setPropertyCount] = useState(1600000);
+  const [queryCount, setQueryCount] = useState(4000);
   const [selectedModel, setSelectedModel] = useState('text-embedding-3-small');
   const [sampleText, setSampleText] = useState('');
   const [sampleTokens, setSampleTokens] = useState(0);
@@ -28,6 +28,7 @@ const EmbeddingCostCalculator = () => {
   const [inputRatio, setInputRatio] = useState(20); // Default 20% input, 80% output
   const [totalTokens, setTotalTokens] = useState(0);
   const [totalCost, setTotalCost] = useState(0);
+  const [scenarioType, setScenarioType] = useState('property'); // 'property' or 'query'
   
   // Embedding model pricing data (per 1M tokens)
   const embeddingModelPricing = {
@@ -73,6 +74,11 @@ const EmbeddingCostCalculator = () => {
     }
   };
 
+  // Handle scenario type change
+  const handleScenarioTypeChange = (type) => {
+    setScenarioType(type);
+  };
+
   // Handle text input change
   const handleTextChange = (e) => {
     const text = e.target.value;
@@ -82,7 +88,10 @@ const EmbeddingCostCalculator = () => {
 
   // Example property data
   const showExample = () => {
-    const example = `Basic Property Information:
+    let example;
+    
+    if (scenarioType === 'property') {
+      example = `Basic Property Information:
 Property type: "Apartment"
 Bedrooms: 2
 Bathrooms: 1
@@ -92,6 +101,9 @@ Location coordinates: latitude: -37.856525, longitude: 144.985485
 Rental price: $400 per week
 For rent: true
 Features: built-in robes, underground car space, storage cage, heating panels, evaporative cooling, lift access, enclosed terrace`;
+    } else {
+      example = `Show me 2-bedroom apartments near the beach with a pool under $500 per week in St Kilda area`;
+    }
     
     setSampleText(example);
     countTokens(example);
@@ -106,8 +118,16 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
   
   // Update calculations when inputs change
   useEffect(() => {
-    const tokensPerProperty = tokenCount; // Using token count directly
-    const totalTokensCalc = propertyCount * tokensPerProperty;
+    let totalTokensCalc;
+    
+    if (scenarioType === 'property') {
+      // For property embedding, multiply token count by number of properties
+      totalTokensCalc = tokenCount * queryCount;
+    } else {
+      // For query scenarios, we're just calculating the cost of queries
+      totalTokensCalc = tokenCount * queryCount;
+    }
+    
     const millionTokens = totalTokensCalc / 1000000;
     
     let calculatedCost = 0;
@@ -129,7 +149,7 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
     
     setTotalTokens(totalTokensCalc);
     setTotalCost(calculatedCost);
-  }, [tokenCount, propertyCount, selectedModel, modelType, embeddingModelPricing, chatModelPricing, inputRatio]);
+  }, [tokenCount, queryCount, selectedModel, modelType, scenarioType, embeddingModelPricing, chatModelPricing, inputRatio]);
   
   return (
     <div className="p-6 max-w-3xl mx-auto bg-white rounded-lg shadow-lg">
@@ -168,20 +188,59 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
               Chat Models
             </button>
           </div>
+          
+          <div className="flex mb-4">
+            <button 
+              className={`px-4 py-2 ${scenarioType === 'property' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-l-lg`}
+              onClick={() => handleScenarioTypeChange('property')}
+            >
+              Property Data
+            </button>
+            <button 
+              className={`px-4 py-2 ${scenarioType === 'query' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-r-lg`}
+              onClick={() => handleScenarioTypeChange('query')}
+            >
+              Search Queries
+            </button>
+          </div>
         </div>
       )}
       
       {activeTab === 'tokenizer' ? (
         <div className="mb-6">
+          <div className="mb-4">
+            <label className="block text-gray-700 font-medium mb-2">
+              What would you like to analyze?
+            </label>
+            <div className="flex mb-4">
+              <button 
+                className={`px-4 py-2 ${scenarioType === 'property' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-l-lg`}
+                onClick={() => handleScenarioTypeChange('property')}
+              >
+                Property Data
+              </button>
+              <button 
+                className={`px-4 py-2 ${scenarioType === 'query' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-r-lg`}
+                onClick={() => handleScenarioTypeChange('query')}
+              >
+                Search Query
+              </button>
+            </div>
+          </div>
+        
           <div className="mb-2">
             <label className="block text-gray-700 font-medium mb-2">
-              Paste your property data to count tokens:
+              {scenarioType === 'property' 
+                ? 'Paste your property data to count tokens:' 
+                : 'Paste your search query to count tokens:'}
             </label>
             <textarea
               value={sampleText}
               onChange={handleTextChange}
               className="w-full p-3 border rounded h-64 font-mono text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Paste your property JSON or text here to count tokens..."
+              placeholder={scenarioType === 'property' 
+                ? "Paste your property JSON or text here to count tokens..." 
+                : "Paste your search query here to count tokens..."}
             />
           </div>
           
@@ -220,7 +279,9 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
         <>
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
-              Tokens per Property:
+              {scenarioType === 'property' 
+                ? 'Tokens per Property:' 
+                : 'Tokens per Query:'}
             </label>
             <input
               type="number"
@@ -234,13 +295,15 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
           
           <div className="mb-4">
             <label className="block text-gray-700 font-medium mb-2">
-              Number of Properties:
+              {scenarioType === 'property' 
+                ? 'Number of Properties:' 
+                : 'Number of Queries:'}
             </label>
             <input
               type="number"
               min="1"
-              value={propertyCount}
-              onChange={(e) => setPropertyCount(parseInt(e.target.value) || 1)}
+              value={queryCount}
+              onChange={(e) => setQueryCount(parseInt(e.target.value) || 1)}
               className="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -297,7 +360,18 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
           
           <div className="bg-gray-100 p-4 rounded-lg">
             <div className="mb-2">
-              <span className="font-semibold">Tokens per Property:</span> {tokenCount}
+              <span className="font-semibold">
+                {scenarioType === 'property' 
+                  ? 'Tokens per Property:' 
+                  : 'Tokens per Query:'}
+              </span> {tokenCount}
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold">
+                {scenarioType === 'property' 
+                  ? 'Number of Properties:' 
+                  : 'Number of Queries:'}
+              </span> {queryCount.toLocaleString()}
             </div>
             <div className="mb-2">
               <span className="font-semibold">Total Tokens:</span> {totalTokens.toLocaleString()}
@@ -335,20 +409,40 @@ Features: built-in robes, underground car space, storage cage, heating panels, e
         <ul className="list-disc ml-5 mt-2">
           {modelType === 'embedding' ? (
             <>
-              <li>This calculator helps estimate embedding costs for property data</li>
+              {scenarioType === 'property' ? (
+                <>
+                  <li>This calculation estimates the cost of embedding your entire property database</li>
+                  <li>Property embeddings are created once and stored in a vector database</li>
+                  <li>Once embedded, you can perform semantic searches on your properties</li>
+                </>
+              ) : (
+                <>
+                  <li>This calculation estimates the cost of embedding user search queries</li>
+                  <li>Each user query needs to be embedded to search against your property embeddings</li>
+                  <li>Query embeddings are typically much smaller than property embeddings</li>
+                </>
+              )}
               <li>Use the tokenizer to get a more accurate token count for your data</li>
               <li>Consider embedding only essential fields to reduce costs</li>
               <li>For large datasets, consider batching or chunking your embedding requests</li>
-              <li>Embedding models are ideal for vector databases, semantic search, and RAG applications</li>
             </>
           ) : (
             <>
+              {scenarioType === 'property' ? (
+                <>
+                  <li>This calculation estimates the cost of processing property data through a chat model</li>
+                  <li>Chat models can be used to enhance property descriptions or extract structured data</li>
+                </>
+              ) : (
+                <>
+                  <li>This calculation estimates the cost of processing user search queries through a chat model</li>
+                  <li>Chat models can interpret complex natural language queries and convert them to structured searches</li>
+                </>
+              )}
               <li>Adjust the input/output ratio slider to match your expected usage pattern</li>
               <li>Chat models typically use more tokens for output than input, but this varies by use case</li>
               <li>GPT-4o-mini and GPT-3.5-turbo offer the best price/performance ratio for most applications</li>
               <li>Models like o1 and GPT-4 are more expensive but excel at complex reasoning tasks</li>
-              <li>Compare different models to find the optimal balance between cost and capabilities for your needs</li>
-              <li>Pricing is current as of May 2025 and may change in the future</li>
             </>
           )}
         </ul>
