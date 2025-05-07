@@ -35,25 +35,31 @@ const ChatSimulation: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState<string>('gpt-4o');
   const [selectedEmbeddingModel, setSelectedEmbeddingModel] = useState<string>('text-embedding-3-small');
   const [includeEmbeddings, setIncludeEmbeddings] = useState<boolean>(true);
+  const [includeChatHistory, setIncludeChatHistory] = useState<boolean>(false);
+  const [chatHistoryCount, setChatHistoryCount] = useState<number>(2);
   const [tokenCounts, setTokenCounts] = useState({
     totalInput: 0,
     totalOutput: 0,
     totalEmbedding: 0,
+    chatHistoryTokens: 0,
     currentSession: 0
   });
   const [costs, setCosts] = useState({
     inputCost: 0,
     outputCost: 0,
     embeddingCost: 0,
+    historyTokenCost: 0,
     totalCost: 0,
     sessionHistory: [] as Array<{
       timestamp: string;
       inputTokens: number;
       outputTokens: number;
       embeddingTokens?: number;
+      historyTokens?: number;
       inputCost: number;
       outputCost: number;
       embeddingCost?: number;
+      historyTokenCost?: number;
       totalCost: number;
     }>
   });
@@ -144,7 +150,7 @@ const ChatSimulation: React.FC = () => {
   };
 
   // Calculate cost based on token count and model
-  const calculateCost = (inputTokens: number, outputTokens: number, includeEmbedding: boolean = true) => {
+  const calculateCost = (inputTokens: number, outputTokens: number, includeEmbedding: boolean = true, historyTokens: number = 0) => {
     const [inputPrice, outputPrice] = modelPricing[selectedModel];
     const embeddingPrice = embeddingModelPricing[selectedEmbeddingModel];
     
@@ -154,11 +160,15 @@ const ChatSimulation: React.FC = () => {
     // Only calculate embedding cost for user queries (input)
     const embeddingCost = includeEmbedding && includeEmbeddings ? (inputTokens / 1000000) * embeddingPrice : 0;
     
+    // Calculate chat history cost (charged at input rate)
+    const historyTokenCost = includeChatHistory && historyTokens > 0 ? (historyTokens / 1000000) * inputPrice : 0;
+    
     return {
       inputCost,
       outputCost,
       embeddingCost,
-      totalCost: inputCost + outputCost + embeddingCost
+      historyTokenCost,
+      totalCost: inputCost + outputCost + embeddingCost + historyTokenCost
     };
   };
 
@@ -168,38 +178,52 @@ const ChatSimulation: React.FC = () => {
     setShowProcess(true);
     
     // Reset process steps
-    setProcessSteps([
+    const initialSteps = [
       {
         id: 'embedding',
         title: 'Embedding Query',
         description: 'Converting query text into vector embeddings',
-        status: 'waiting'
+        status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
       },
       {
         id: 'search',
         title: 'Vector Database Search',
         description: 'Searching for relevant property matches',
-        status: 'waiting'
+        status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
       },
       {
         id: 'rank',
         title: 'Ranking Results',
         description: 'Sorting results by relevance score',
-        status: 'waiting'
+        status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
       },
       {
         id: 'prompt',
         title: 'Building RAG Prompt',
         description: 'Combining query with retrieved context',
-        status: 'waiting'
-      },
-      {
-        id: 'generate',
-        title: 'Generating Response',
-        description: 'Using LLM to create final answer',
-        status: 'waiting'
+        status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
       }
-    ]);
+    ];
+    
+    // Add chat history step if enabled
+    if (includeChatHistory && messages.length > 0) {
+      initialSteps.splice(3, 0, {
+        id: 'history',
+        title: 'Adding Chat History',
+        description: `Including ${Math.min(chatHistoryCount, messages.length)} previous messages`,
+        status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
+      });
+    }
+    
+    // Add generate step
+    initialSteps.push({
+      id: 'generate',
+      title: 'Generating Response',
+      description: 'Using LLM to create final answer',
+      status: 'waiting' as 'waiting' | 'processing' | 'completed' | 'error'
+    });
+    
+    setProcessSteps(initialSteps);
     setMatchedProperties([]);
     
     // Tokens and costs
@@ -285,12 +309,54 @@ Features: ${p.features.join(', ')}
 Description: ${p.description}`
     ).join('\n\n');
     
+    // Build chat history string if enabled
+    let chatHistoryString = '';
+    let historyTokens = 0;
+    
+    if (includeChatHistory && messages.length > 0) {
+      // Start history step
+      setProcessSteps(steps => {
+        const newSteps = [...steps];
+        const historyStep = newSteps.find(s => s.id === 'history');
+        if (historyStep) {
+          historyStep.status = 'processing';
+        }
+        return newSteps;
+      });
+      
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      // Get recent messages based on chatHistoryCount
+      const historyMessages = messages.slice(-Math.min(chatHistoryCount, messages.length));
+      
+      chatHistoryString = 'CHAT HISTORY:\n' + 
+        historyMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join('\n\n') + 
+        '\n\n';
+      
+      historyTokens = estimateTokens(chatHistoryString);
+      
+      // Complete history step
+      setProcessSteps(steps => {
+        const newSteps = [...steps];
+        const historyStep = newSteps.find(s => s.id === 'history');
+        if (historyStep) {
+          historyStep.status = 'completed';
+          historyStep.tokens = historyTokens;
+          historyStep.details = { 
+            messagesIncluded: historyMessages.length,
+            maxMessages: chatHistoryCount
+          };
+        }
+        return newSteps;
+      });
+    }
+    
     const fullPrompt = `User Query: ${userMessage}
     
-CONTEXT INFORMATION:
+${chatHistoryString}CONTEXT INFORMATION:
 ${contextString}
 
-Based on the user query and the provided property information, answer the user's question about available properties. If specific properties match their criteria, mention the details. If no properties exactly match, suggest close alternatives. Be helpful and informative.
+Based on the user query${includeChatHistory ? ', chat history,' : ''} and the provided property information, answer the user's question about available properties. If specific properties match their criteria, mention the details. If no properties exactly match, suggest close alternatives. Be helpful and informative.
 
 Answer:`;
     
@@ -369,7 +435,7 @@ Would you like more specific information about any of these properties?`;
     }
     
     const outputTokens = estimateTokens(aiResponse);
-    const { inputCost, outputCost, embeddingCost, totalCost } = calculateCost(promptTokens, outputTokens, true);
+    const { inputCost, outputCost, embeddingCost, historyTokenCost, totalCost } = calculateCost(promptTokens, outputTokens, true, historyTokens);
     
     await new Promise(resolve => setTimeout(resolve, 1500));
     
@@ -390,7 +456,8 @@ Would you like more specific information about any of these properties?`;
       totalInput: prev.totalInput + promptTokens,
       totalOutput: prev.totalOutput + outputTokens,
       totalEmbedding: includeEmbeddings ? prev.totalEmbedding + userTokens : prev.totalEmbedding,
-      currentSession: prev.currentSession + promptTokens + outputTokens + (includeEmbeddings ? userTokens : 0)
+      chatHistoryTokens: includeChatHistory ? prev.chatHistoryTokens + historyTokens : prev.chatHistoryTokens,
+      currentSession: prev.currentSession + promptTokens + outputTokens + (includeEmbeddings ? userTokens : 0) + (includeChatHistory ? historyTokens : 0)
     }));
     
     // Update costs
@@ -398,15 +465,18 @@ Would you like more specific information about any of these properties?`;
       inputCost: prev.inputCost + inputCost,
       outputCost: prev.outputCost + outputCost,
       embeddingCost: prev.embeddingCost + embeddingCost,
+      historyTokenCost: prev.historyTokenCost + (historyTokenCost || 0),
       totalCost: prev.totalCost + totalCost,
       sessionHistory: [...prev.sessionHistory, {
         timestamp: new Date().toISOString(),
         inputTokens: promptTokens,
         outputTokens,
         embeddingTokens: userTokens,
+        historyTokens: includeChatHistory ? historyTokens : 0,
         inputCost,
         outputCost,
         embeddingCost,
+        historyTokenCost: historyTokenCost || 0,
         totalCost
       }]
     }));
@@ -432,7 +502,16 @@ Would you like more specific information about any of these properties?`;
     
     // Add user message
     const userTokens = estimateTokens(inputMessage);
-    const { inputCost } = calculateCost(userTokens, 0, false);
+    
+    // Calculate history tokens if enabled
+    let historyTokens = 0;
+    if (includeChatHistory && messages.length > 0) {
+      const historyMessages = messages.slice(-Math.min(chatHistoryCount, messages.length));
+      const historyString = historyMessages.map(msg => `${msg.role === 'user' ? 'User' : 'Assistant'}: ${msg.content}`).join('\n\n');
+      historyTokens = estimateTokens(historyString);
+    }
+    
+    const { inputCost } = calculateCost(userTokens, 0, false, historyTokens);
     
     // Update messages
     setMessages(prev => [
@@ -480,6 +559,33 @@ Would you like more specific information about any of these properties?`;
             </select>
             <div className="text-xs text-gray-600 mt-1">
               Price: ${modelPricing[selectedModel][0]} input / ${modelPricing[selectedModel][1]} output per 1M tokens
+            </div>
+            
+            <div className="mt-3">
+              <div className="flex justify-between mb-1">
+                <div className="text-sm font-medium">Chat History:</div>
+                <label className="inline-flex items-center text-sm">
+                  <input
+                    type="checkbox"
+                    checked={includeChatHistory}
+                    onChange={() => setIncludeChatHistory(!includeChatHistory)}
+                    className="mr-1"
+                  />
+                  Include chat history
+                </label>
+              </div>
+              <div className="flex items-center">
+                <input
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={chatHistoryCount}
+                  onChange={(e) => setChatHistoryCount(parseInt(e.target.value) || 1)}
+                  className="w-16 p-2 border rounded text-sm mr-2"
+                  disabled={!includeChatHistory}
+                />
+                <span className="text-sm text-gray-600">previous messages to include</span>
+              </div>
             </div>
           </div>
           
@@ -686,6 +792,18 @@ Would you like more specific information about any of these properties?`;
                         </div>
                       )}
                       
+                      {step.status === 'completed' && step.id === 'history' && (
+                        <div className="p-3">
+                          <div className="text-xs mb-2">
+                            Included {step.details?.messagesIncluded} previous messages ({step.tokens} tokens):
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500 mt-1 mb-2">
+                            <span>Messages used: {step.details?.messagesIncluded}/{step.details?.maxMessages}</span>
+                            <span>Cost impact: ${((step.tokens || 0) / 1000000 * modelPricing[selectedModel][0]).toFixed(6)}</span>
+                          </div>
+                        </div>
+                      )}
+                      
                       {step.status === 'completed' && step.id === 'prompt' && ragPrompt && (
                         <div className="p-3">
                           <div className="text-xs mb-2">
@@ -723,6 +841,18 @@ Would you like more specific information about any of these properties?`;
                     <div className="flex justify-between mb-1">
                       <span className="text-sm">Embedding Tokens:</span>
                       <span className="text-sm">{tokenCounts.totalEmbedding}</span>
+                    </div>
+                  )}
+                  {includeChatHistory && (
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Chat History Tokens:</span>
+                      <span className="text-sm">{tokenCounts.chatHistoryTokens}</span>
+                    </div>
+                  )}
+                  {includeChatHistory && (
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Chat History Cost:</span>
+                      <span className="text-sm">${costs.historyTokenCost.toFixed(6)}</span>
                     </div>
                   )}
                   <div className="border-t pt-1 mt-1">
