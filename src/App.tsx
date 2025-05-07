@@ -4,42 +4,107 @@ import ChatSimulation from './components/ChatSimulation';
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'tokenizer' | 'embedding' | 'chat'>('tokenizer');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
 
   return (
-    <div className="App py-8">
-      <div className="p-6 max-w-3xl mx-auto bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold text-center mb-2">AI Model Cost Calculator</h1>
-        <h2 className="text-sm text-gray-600 text-center mb-6">Created by Mike Keleshter to help analyze tokens and calculate costs for OpenAI and Anthropic models</h2>
-        <p className="text-sm text-gray-600 text-center mb-6">Supports both embedding models and chat/LLM models with up-to-date pricing (May 2025)</p>
-        
-        <div className="flex mb-6 border-b">
+    <div className="flex h-screen bg-gray-100">
+      {/* Sidebar */}
+      <div className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} bg-gray-800 text-white transition-all duration-300 ease-in-out flex flex-col`}>
+        {/* Logo/Header */}
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          {!isSidebarCollapsed && <h1 className="text-xl font-bold">AI Cost Calc</h1>}
           <button 
-            className={`px-4 py-2 ${activeTab === 'tokenizer' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg mr-2`}
-            onClick={() => setActiveTab('tokenizer')}
+            onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+            className="p-1 rounded-full hover:bg-gray-700 focus:outline-none"
           >
-            Tokenizer
-          </button>
-          <button 
-            className={`px-4 py-2 ${activeTab === 'embedding' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg mr-2`}
-            onClick={() => setActiveTab('embedding')}
-          >
-            Embedding Cost Calculator
-          </button>
-          <button 
-            className={`px-4 py-2 ${activeTab === 'chat' ? 'bg-blue-500 text-white' : 'bg-gray-200'} rounded-t-lg`}
-            onClick={() => setActiveTab('chat')}
-          >
-            Chat Cost Calculator
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              {isSidebarCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              )}
+            </svg>
           </button>
         </div>
         
-        {activeTab === 'tokenizer' ? (
-          <TokenizerComponent />
-        ) : activeTab === 'embedding' ? (
-          <EmbeddingCostCalculator />
-        ) : (
-          <ChatSimulation />
+        {/* Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4">
+          <ul>
+            <li>
+              <button 
+                onClick={() => setActiveTab('tokenizer')}
+                className={`flex items-center w-full px-4 py-3 ${activeTab === 'tokenizer' ? 'bg-blue-600' : 'hover:bg-gray-700'} transition-colors`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
+                </svg>
+                {!isSidebarCollapsed && <span>Tokenizer</span>}
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveTab('embedding')}
+                className={`flex items-center w-full px-4 py-3 ${activeTab === 'embedding' ? 'bg-blue-600' : 'hover:bg-gray-700'} transition-colors`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+                {!isSidebarCollapsed && <span>Embedding Calculator</span>}
+              </button>
+            </li>
+            <li>
+              <button 
+                onClick={() => setActiveTab('chat')}
+                className={`flex items-center w-full px-4 py-3 ${activeTab === 'chat' ? 'bg-blue-600' : 'hover:bg-gray-700'} transition-colors`}
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+                {!isSidebarCollapsed && <span>Chat Calculator</span>}
+              </button>
+            </li>
+          </ul>
+        </nav>
+        
+        {/* Footer */}
+        {!isSidebarCollapsed && (
+          <div className="p-4 border-t border-gray-700 text-xs text-gray-400">
+            <p>Created by Mike Keleshter</p>
+            <p>Updated: May 2025</p>
+          </div>
         )}
+      </div>
+      
+      {/* Main Content */}
+      <div className="flex-1 overflow-x-hidden overflow-y-auto">
+        {/* Header */}
+        <header className="bg-white shadow-sm">
+          <div className="px-6 py-4">
+            <h1 className="text-2xl font-bold text-gray-800">
+              {activeTab === 'tokenizer' ? 'Tokenizer' : 
+               activeTab === 'embedding' ? 'Embedding Cost Calculator' : 
+               'Chat Cost Calculator'}
+            </h1>
+            <p className="text-sm text-gray-600 mt-1">
+              {activeTab === 'tokenizer' ? 'Analyze text to count tokens' : 
+               activeTab === 'embedding' ? 'Calculate costs for embedding models' : 
+               'Simulate and calculate costs for chat models'}
+            </p>
+          </div>
+        </header>
+        
+        {/* Page Content */}
+        <main className="p-6">
+          <div className="bg-white rounded-lg shadow-md p-6">
+            {activeTab === 'tokenizer' ? (
+              <TokenizerComponent />
+            ) : activeTab === 'embedding' ? (
+              <EmbeddingCostCalculator />
+            ) : (
+              <ChatSimulation />
+            )}
+          </div>
+        </main>
       </div>
     </div>
   );

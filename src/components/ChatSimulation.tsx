@@ -512,224 +512,230 @@ Would you like more specific information about any of these properties?`;
           </div>
         </div>
       
-        <div className="flex flex-1">
-          {/* Chat area */}
-          <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
-            <div className="bg-gray-50 p-2 border-b">
-              <h3 className="font-medium text-sm">Property Search Assistant</h3>
-            </div>
-            
-            <div className="flex-1 overflow-y-auto p-4 max-h-[400px]">
-              {messages.map((message, index) => (
-                <div 
-                  key={index}
-                  className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
-                >
+        {/* Main content area with chat and RAG visualization side by side */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          {/* Left side: Chat area */}
+          <div className="lg:col-span-6 flex flex-col">
+            <div className="flex-1 flex flex-col border rounded-lg overflow-hidden">
+              <div className="bg-gray-50 p-2 border-b">
+                <h3 className="font-medium text-sm">Property Search Assistant</h3>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 max-h-[400px]">
+                {messages.map((message, index) => (
                   <div 
-                    className={`inline-block p-3 rounded-lg max-w-xs md:max-w-md lg:max-w-lg ${
-                      message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                    }`}
+                    key={index}
+                    className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
                   >
-                    {message.content}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    {message.tokens} tokens (${message.cost.toFixed(6)})
-                  </div>
-                </div>
-              ))}
-              {isLoading && (
-                <div className="text-left mb-4">
-                  <div className="inline-block p-3 rounded-lg bg-gray-200">
-                    <div className="flex space-x-2">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                    <div 
+                      className={`inline-block p-3 rounded-lg max-w-xs md:max-w-md lg:max-w-lg ${
+                        message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                      }`}
+                    >
+                      {message.content}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {message.tokens} tokens (${message.cost.toFixed(6)})
                     </div>
                   </div>
+                ))}
+                {isLoading && (
+                  <div className="text-left mb-4">
+                    <div className="inline-block p-3 rounded-lg bg-gray-200">
+                      <div className="flex space-x-2">
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                        <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+              
+              <div className="p-3 border-t">
+                <div className="flex">
+                  <input
+                    type="text"
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Ask about properties (e.g., 'Find 2-bedroom apartments near the beach in St Kilda')"
+                    className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    disabled={isLoading}
+                    className="bg-blue-500 text-white p-2 rounded-r-lg disabled:bg-blue-300"
+                  >
+                    Send
+                  </button>
                 </div>
-              )}
-              <div ref={messagesEndRef} />
-            </div>
-            
-            <div className="p-3 border-t">
-              <div className="flex">
-                <input
-                  type="text"
-                  value={inputMessage}
-                  onChange={(e) => setInputMessage(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Ask about properties (e.g., 'Find 2-bedroom apartments near the beach in St Kilda')"
-                  className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  disabled={isLoading}
-                  className="bg-blue-500 text-white p-2 rounded-r-lg disabled:bg-blue-300"
-                >
-                  Send
-                </button>
               </div>
             </div>
           </div>
           
-          {/* Cost dashboard */}
-          <div className="w-64 bg-gray-50 p-4 border rounded-lg ml-4 overflow-y-auto">
-            <h2 className="font-bold mb-4">Cost Tracking</h2>
+          {/* Right side: RAG Process Visualization and Cost Dashboard */}
+          <div className="lg:col-span-6 flex flex-col space-y-4">
+            {/* RAG Process Visualization */}
+            {showProcess && includeEmbeddings && (
+              <div className="bg-gray-50 p-4 border rounded-lg flex-1 overflow-y-auto max-h-[400px]">
+                <h3 className="font-bold mb-2">RAG Process Visualization</h3>
+                
+                <div className="space-y-4">
+                  {processSteps.map((step, index) => (
+                    <div key={step.id} className="border rounded-lg overflow-hidden bg-white">
+                      <div className={`flex items-center justify-between p-3 ${
+                        step.status === 'waiting' ? 'bg-gray-100' :
+                        step.status === 'processing' ? 'bg-blue-50' :
+                        step.status === 'completed' ? 'bg-green-50' : 'bg-red-50'
+                      }`}>
+                        <div className="flex items-center">
+                          <div className={`h-6 w-6 rounded-full flex items-center justify-center mr-2 ${
+                            step.status === 'waiting' ? 'bg-gray-300' :
+                            step.status === 'processing' ? 'bg-blue-400 animate-pulse' :
+                            step.status === 'completed' ? 'bg-green-500' : 'bg-red-500'
+                          } text-white font-bold`}>
+                            {step.status === 'completed' ? '✓' : index + 1}
+                          </div>
+                          <div>
+                            <h4 className="font-medium">{step.title}</h4>
+                            <p className="text-xs text-gray-600">{step.description}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          {step.tokens && (
+                            <div className="text-xs">
+                              {step.tokens} tokens
+                              {step.cost && <span> (${step.cost.toFixed(6)})</span>}
+                            </div>
+                          )}
+                          <div className="text-xs text-gray-500">
+                            {step.status === 'waiting' ? 'Pending' :
+                             step.status === 'processing' ? 'In progress...' :
+                             step.status === 'completed' ? 'Completed' : 'Error'}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {step.status === 'completed' && step.details && step.id === 'embedding' && (
+                        <div className="p-3 text-sm">
+                          <div className="flex justify-between text-xs mb-1">
+                            <span>Model: {step.details.model}</span>
+                            <span>Dimensions: {step.details.dimensions}</span>
+                          </div>
+                          <div className="mt-2 overflow-x-auto">
+                            <div className="text-xs text-gray-500">Vector representation (truncated):</div>
+                            <div className="font-mono text-xs bg-gray-50 p-2 rounded">
+                              [-0.024, 0.031, 0.017, ..., 0.045, -0.087, 0.022]
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {step.status === 'completed' && step.id === 'search' && (
+                        <div className="p-3 text-sm">
+                          <div className="text-xs mb-1">
+                            <span>Database: {step.details?.dbType}</span> | 
+                            <span> Namespace: {step.details?.namespace}</span> | 
+                            <span> Total items: {step.details?.totalItems}</span>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {step.status === 'completed' && step.id === 'rank' && matchedProperties.length > 0 && (
+                        <div className="p-3">
+                          <div className="text-xs mb-2">Top matches with similarity scores:</div>
+                          <div className="overflow-x-auto">
+                            <table className="w-full text-xs border-collapse">
+                              <thead>
+                                <tr className="bg-gray-50">
+                                  <th className="p-1 text-left border">Property</th>
+                                  <th className="p-1 text-left border">Type</th>
+                                  <th className="p-1 text-left border">Location</th>
+                                  <th className="p-1 text-right border">Price</th>
+                                  <th className="p-1 text-right border">Similarity</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {matchedProperties.map(property => (
+                                  <tr key={property.id} className="hover:bg-blue-50">
+                                    <td className="p-1 border">{property.id}</td>
+                                    <td className="p-1 border">{property.bedrooms}BR {property.type}</td>
+                                    <td className="p-1 border">{property.address}</td>
+                                    <td className="p-1 text-right border">${property.price}/wk</td>
+                                    <td className="p-1 text-right border">
+                                      <div className="flex items-center justify-end">
+                                        <div 
+                                          className="w-16 h-2 bg-gray-200 rounded-full mr-1 overflow-hidden"
+                                          title={`${(property.similarity * 100).toFixed(1)}%`}
+                                        >
+                                          <div 
+                                            className="h-full bg-green-500" 
+                                            style={{width: `${property.similarity * 100}%`}}
+                                          ></div>
+                                        </div>
+                                        <span>{(property.similarity * 100).toFixed(0)}%</span>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {step.status === 'completed' && step.id === 'prompt' && ragPrompt && (
+                        <div className="p-3">
+                          <div className="text-xs mb-2">
+                            Generated RAG prompt with {step.details?.properties} properties ({step.tokens} tokens):
+                          </div>
+                          <div className="overflow-y-auto max-h-48">
+                            <div className="font-mono text-xs bg-gray-50 p-2 rounded whitespace-pre-wrap">
+                              {ragPrompt}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  <div ref={processEndRef}></div>
+                </div>
+              </div>
+            )}
             
-            <div className="mb-4">
-              <div className="bg-white p-3 rounded shadow-sm mb-2">
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm">Input Tokens:</span>
-                  <span className="text-sm">{tokenCounts.totalInput}</span>
-                </div>
-                <div className="flex justify-between mb-1">
-                  <span className="text-sm">Output Tokens:</span>
-                  <span className="text-sm">{tokenCounts.totalOutput}</span>
-                </div>
-                {includeEmbeddings && (
+            {/* Cost dashboard */}
+            <div className="bg-gray-50 p-4 border rounded-lg">
+              <h2 className="font-bold mb-4">Cost Tracking</h2>
+              
+              <div className="mb-4">
+                <div className="bg-white p-3 rounded shadow-sm mb-2">
                   <div className="flex justify-between mb-1">
-                    <span className="text-sm">Embedding Tokens:</span>
-                    <span className="text-sm">{tokenCounts.totalEmbedding}</span>
+                    <span className="text-sm">Input Tokens:</span>
+                    <span className="text-sm">{tokenCounts.totalInput}</span>
                   </div>
-                )}
-                <div className="border-t pt-1 mt-1">
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-sm">Total Cost:</span>
-                    <span className="text-sm">${costs.totalCost.toFixed(6)}</span>
+                  <div className="flex justify-between mb-1">
+                    <span className="text-sm">Output Tokens:</span>
+                    <span className="text-sm">{tokenCounts.totalOutput}</span>
+                  </div>
+                  {includeEmbeddings && (
+                    <div className="flex justify-between mb-1">
+                      <span className="text-sm">Embedding Tokens:</span>
+                      <span className="text-sm">{tokenCounts.totalEmbedding}</span>
+                    </div>
+                  )}
+                  <div className="border-t pt-1 mt-1">
+                    <div className="flex justify-between font-semibold">
+                      <span className="text-sm">Total Cost:</span>
+                      <span className="text-sm">${costs.totalCost.toFixed(6)}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
-        
-        {/* RAG Process Visualization */}
-        {showProcess && includeEmbeddings && (
-          <div className="mt-4 mb-4 bg-gray-50 p-4 border rounded-lg">
-            <h3 className="font-bold mb-2">RAG Process Visualization</h3>
-            
-            <div className="space-y-4">
-              {processSteps.map((step, index) => (
-                <div key={step.id} className="border rounded-lg overflow-hidden bg-white">
-                  <div className={`flex items-center justify-between p-3 ${
-                    step.status === 'waiting' ? 'bg-gray-100' :
-                    step.status === 'processing' ? 'bg-blue-50' :
-                    step.status === 'completed' ? 'bg-green-50' : 'bg-red-50'
-                  }`}>
-                    <div className="flex items-center">
-                      <div className={`h-6 w-6 rounded-full flex items-center justify-center mr-2 ${
-                        step.status === 'waiting' ? 'bg-gray-300' :
-                        step.status === 'processing' ? 'bg-blue-400 animate-pulse' :
-                        step.status === 'completed' ? 'bg-green-500' : 'bg-red-500'
-                      } text-white font-bold`}>
-                        {step.status === 'completed' ? '✓' : index + 1}
-                      </div>
-                      <div>
-                        <h4 className="font-medium">{step.title}</h4>
-                        <p className="text-xs text-gray-600">{step.description}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      {step.tokens && (
-                        <div className="text-xs">
-                          {step.tokens} tokens
-                          {step.cost && <span> (${step.cost.toFixed(6)})</span>}
-                        </div>
-                      )}
-                      <div className="text-xs text-gray-500">
-                        {step.status === 'waiting' ? 'Pending' :
-                         step.status === 'processing' ? 'In progress...' :
-                         step.status === 'completed' ? 'Completed' : 'Error'}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {step.status === 'completed' && step.details && step.id === 'embedding' && (
-                    <div className="p-3 text-sm">
-                      <div className="flex justify-between text-xs mb-1">
-                        <span>Model: {step.details.model}</span>
-                        <span>Dimensions: {step.details.dimensions}</span>
-                      </div>
-                      <div className="mt-2 overflow-x-auto">
-                        <div className="text-xs text-gray-500">Vector representation (truncated):</div>
-                        <div className="font-mono text-xs bg-gray-50 p-2 rounded">
-                          [-0.024, 0.031, 0.017, ..., 0.045, -0.087, 0.022]
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {step.status === 'completed' && step.id === 'search' && (
-                    <div className="p-3 text-sm">
-                      <div className="text-xs mb-1">
-                        <span>Database: {step.details?.dbType}</span> | 
-                        <span> Namespace: {step.details?.namespace}</span> | 
-                        <span> Total items: {step.details?.totalItems}</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {step.status === 'completed' && step.id === 'rank' && matchedProperties.length > 0 && (
-                    <div className="p-3">
-                      <div className="text-xs mb-2">Top matches with similarity scores:</div>
-                      <div className="overflow-x-auto">
-                        <table className="w-full text-xs border-collapse">
-                          <thead>
-                            <tr className="bg-gray-50">
-                              <th className="p-1 text-left border">Property</th>
-                              <th className="p-1 text-left border">Type</th>
-                              <th className="p-1 text-left border">Location</th>
-                              <th className="p-1 text-right border">Price</th>
-                              <th className="p-1 text-right border">Similarity</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {matchedProperties.map(property => (
-                              <tr key={property.id} className="hover:bg-blue-50">
-                                <td className="p-1 border">{property.id}</td>
-                                <td className="p-1 border">{property.bedrooms}BR {property.type}</td>
-                                <td className="p-1 border">{property.address}</td>
-                                <td className="p-1 text-right border">${property.price}/wk</td>
-                                <td className="p-1 text-right border">
-                                  <div className="flex items-center justify-end">
-                                    <div 
-                                      className="w-16 h-2 bg-gray-200 rounded-full mr-1 overflow-hidden"
-                                      title={`${(property.similarity * 100).toFixed(1)}%`}
-                                    >
-                                      <div 
-                                        className="h-full bg-green-500" 
-                                        style={{width: `${property.similarity * 100}%`}}
-                                      ></div>
-                                    </div>
-                                    <span>{(property.similarity * 100).toFixed(0)}%</span>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {step.status === 'completed' && step.id === 'prompt' && ragPrompt && (
-                    <div className="p-3">
-                      <div className="text-xs mb-2">
-                        Generated RAG prompt with {step.details?.properties} properties ({step.tokens} tokens):
-                      </div>
-                      <div className="overflow-y-auto max-h-48">
-                        <div className="font-mono text-xs bg-gray-50 p-2 rounded whitespace-pre-wrap">
-                          {ragPrompt}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-              <div ref={processEndRef}></div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
