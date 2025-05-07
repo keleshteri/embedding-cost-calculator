@@ -202,9 +202,8 @@ const ChatSimulation: React.FC = () => {
   }, [messages]);
 
   return (
-    <div className="flex flex-col h-screen max-h-[calc(100vh-12rem)]">
-      <div className="bg-white shadow p-4">
-        <h1 className="text-xl font-bold text-center">AI Chat Token Cost Simulator</h1>
+    <div className="flex flex-col">
+      <div className="mb-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
           <div>
             <div className="text-sm font-medium mb-1">Chat Model:</div>
@@ -255,155 +254,155 @@ const ChatSimulation: React.FC = () => {
             </div>
           </div>
         </div>
-      </div>
       
-      <div className="flex flex-1 overflow-hidden">
-        {/* Chat area */}
-        <div className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-4">
-            {messages.map((message, index) => (
-              <div 
-                key={index}
-                className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
-              >
+        <div className="flex flex-1 overflow-hidden mt-4">
+          {/* Chat area */}
+          <div className="flex-1 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-4">
+              {messages.map((message, index) => (
                 <div 
-                  className={`inline-block p-3 rounded-lg max-w-xs md:max-w-md lg:max-w-lg ${
-                    message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
-                  }`}
+                  key={index}
+                  className={`mb-4 ${message.role === 'user' ? 'text-right' : 'text-left'}`}
                 >
-                  {message.content}
+                  <div 
+                    className={`inline-block p-3 rounded-lg max-w-xs md:max-w-md lg:max-w-lg ${
+                      message.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200'
+                    }`}
+                  >
+                    {message.content}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    {message.tokens} tokens (${message.cost.toFixed(6)})
+                    {message.role === 'user' && includeEmbeddings && message.embeddingCost !== undefined && (
+                      <span> + ${message.embeddingCost.toFixed(6)} embedding</span>
+                    )}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {message.tokens} tokens (${message.cost.toFixed(6)})
-                  {message.role === 'user' && includeEmbeddings && message.embeddingCost !== undefined && (
-                    <span> + ${message.embeddingCost.toFixed(6)} embedding</span>
-                  )}
+              ))}
+              {isLoading && (
+                <div className="text-left mb-4">
+                  <div className="inline-block p-3 rounded-lg bg-gray-200">
+                    <div className="flex space-x-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+                    </div>
+                  </div>
                 </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+            
+            <div className="p-4 border-t">
+              <div className="flex">
+                <input
+                  type="text"
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+                  placeholder="Type your message..."
+                  className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <button
+                  onClick={handleSendMessage}
+                  disabled={isLoading}
+                  className="bg-blue-500 text-white p-2 rounded-r-lg disabled:bg-blue-300"
+                >
+                  Send
+                </button>
               </div>
-            ))}
-            {isLoading && (
-              <div className="text-left mb-4">
-                <div className="inline-block p-3 rounded-lg bg-gray-200">
-                  <div className="flex space-x-2">
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.4s'}}></div>
+            </div>
+          </div>
+          
+          {/* Cost dashboard */}
+          <div className="w-64 bg-gray-50 p-4 border-l overflow-y-auto">
+            <h2 className="font-bold mb-4">Token & Cost Tracking</h2>
+            
+            <div className="mb-6">
+              <h3 className="font-semibold mb-2">Current Session</h3>
+              <div className="bg-white p-3 rounded shadow-sm mb-2">
+                <div className="flex justify-between mb-1">
+                  <span>Input Tokens:</span>
+                  <span>{tokenCounts.totalInput}</span>
+                </div>
+                <div className="flex justify-between mb-1">
+                  <span>Output Tokens:</span>
+                  <span>{tokenCounts.totalOutput}</span>
+                </div>
+                {includeEmbeddings && (
+                  <div className="flex justify-between mb-1">
+                    <span>Embedding Tokens:</span>
+                    <span>{tokenCounts.totalEmbedding}</span>
+                  </div>
+                )}
+                <div className="flex justify-between mb-1">
+                  <span>Total Tokens:</span>
+                  <span>{tokenCounts.currentSession}</span>
+                </div>
+                <div className="border-t pt-1 mt-1">
+                  <div className="flex justify-between font-semibold">
+                    <span>Total Cost:</span>
+                    <span>${costs.totalCost.toFixed(6)}</span>
                   </div>
                 </div>
               </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-          
-          <div className="p-4 border-t">
-            <div className="flex">
-              <input
-                type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                placeholder="Type your message..."
-                className="flex-1 p-2 border rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-              <button
-                onClick={handleSendMessage}
-                disabled={isLoading}
-                className="bg-blue-500 text-white p-2 rounded-r-lg disabled:bg-blue-300"
-              >
-                Send
-              </button>
-            </div>
-          </div>
-        </div>
-        
-        {/* Cost dashboard */}
-        <div className="w-64 bg-gray-50 p-4 border-l overflow-y-auto">
-          <h2 className="font-bold mb-4">Token & Cost Tracking</h2>
-          
-          <div className="mb-6">
-            <h3 className="font-semibold mb-2">Current Session</h3>
-            <div className="bg-white p-3 rounded shadow-sm mb-2">
-              <div className="flex justify-between mb-1">
-                <span>Input Tokens:</span>
-                <span>{tokenCounts.totalInput}</span>
+              
+              <div className="grid grid-cols-2 gap-2 mb-2">
+                <div className="bg-white p-2 rounded shadow-sm text-center">
+                  <div className="text-xs text-gray-500">Input Cost</div>
+                  <div className="font-semibold">${costs.inputCost.toFixed(6)}</div>
+                </div>
+                <div className="bg-white p-2 rounded shadow-sm text-center">
+                  <div className="text-xs text-gray-500">Output Cost</div>
+                  <div className="font-semibold">${costs.outputCost.toFixed(6)}</div>
+                </div>
               </div>
-              <div className="flex justify-between mb-1">
-                <span>Output Tokens:</span>
-                <span>{tokenCounts.totalOutput}</span>
-              </div>
+              
               {includeEmbeddings && (
-                <div className="flex justify-between mb-1">
-                  <span>Embedding Tokens:</span>
-                  <span>{tokenCounts.totalEmbedding}</span>
+                <div className="bg-white p-2 rounded shadow-sm text-center mb-2">
+                  <div className="text-xs text-gray-500">Embedding Cost</div>
+                  <div className="font-semibold">${costs.embeddingCost.toFixed(6)}</div>
+                  <div className="text-xs text-gray-500">{selectedEmbeddingModel}</div>
                 </div>
               )}
-              <div className="flex justify-between mb-1">
-                <span>Total Tokens:</span>
-                <span>{tokenCounts.currentSession}</span>
-              </div>
-              <div className="border-t pt-1 mt-1">
-                <div className="flex justify-between font-semibold">
-                  <span>Total Cost:</span>
-                  <span>${costs.totalCost.toFixed(6)}</span>
-                </div>
-              </div>
             </div>
             
-            <div className="grid grid-cols-2 gap-2 mb-2">
-              <div className="bg-white p-2 rounded shadow-sm text-center">
-                <div className="text-xs text-gray-500">Input Cost</div>
-                <div className="font-semibold">${costs.inputCost.toFixed(6)}</div>
-              </div>
-              <div className="bg-white p-2 rounded shadow-sm text-center">
-                <div className="text-xs text-gray-500">Output Cost</div>
-                <div className="font-semibold">${costs.outputCost.toFixed(6)}</div>
-              </div>
-            </div>
-            
-            {includeEmbeddings && (
-              <div className="bg-white p-2 rounded shadow-sm text-center mb-2">
-                <div className="text-xs text-gray-500">Embedding Cost</div>
-                <div className="font-semibold">${costs.embeddingCost.toFixed(6)}</div>
-                <div className="text-xs text-gray-500">{selectedEmbeddingModel}</div>
-              </div>
-            )}
-          </div>
-          
-          <div>
-            <h3 className="font-semibold mb-2">Cost History</h3>
-            <div className="text-xs">
-              {costs.sessionHistory.length > 0 ? (
-                <div className="bg-white p-3 rounded shadow-sm overflow-y-auto max-h-40">
-                  {costs.sessionHistory.map((entry, index) => (
-                    <div key={index} className="mb-2 pb-2 border-b border-gray-100 last:border-0">
-                      <div className="flex justify-between">
-                        <span>Message {index + 1}:</span>
-                        <span>${entry.totalCost.toFixed(6)}</span>
-                      </div>
-                      <div className="text-gray-500">
-                        In: {entry.inputTokens} | Out: {entry.outputTokens}
-                        {includeEmbeddings && entry.embeddingTokens !== undefined && entry.embeddingTokens > 0 && (
-                          <> | Emb: {entry.embeddingTokens}</>
+            <div>
+              <h3 className="font-semibold mb-2">Cost History</h3>
+              <div className="text-xs">
+                {costs.sessionHistory.length > 0 ? (
+                  <div className="bg-white p-3 rounded shadow-sm overflow-y-auto max-h-40">
+                    {costs.sessionHistory.map((entry, index) => (
+                      <div key={index} className="mb-2 pb-2 border-b border-gray-100 last:border-0">
+                        <div className="flex justify-between">
+                          <span>Message {index + 1}:</span>
+                          <span>${entry.totalCost.toFixed(6)}</span>
+                        </div>
+                        <div className="text-gray-500">
+                          In: {entry.inputTokens} | Out: {entry.outputTokens}
+                          {includeEmbeddings && entry.embeddingTokens !== undefined && entry.embeddingTokens > 0 && (
+                            <> | Emb: {entry.embeddingTokens}</>
+                          )}
+                        </div>
+                        {includeEmbeddings && entry.embeddingCost !== undefined && entry.embeddingCost > 0 && (
+                          <div className="text-gray-500">
+                            Embedding: ${entry.embeddingCost.toFixed(6)}
+                          </div>
                         )}
                       </div>
-                      {includeEmbeddings && entry.embeddingCost !== undefined && entry.embeddingCost > 0 && (
-                        <div className="text-gray-500">
-                          Embedding: ${entry.embeddingCost.toFixed(6)}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-500 text-center">No history yet</div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-gray-500 text-center">No history yet</div>
+                )}
+              </div>
             </div>
-          </div>
-          
-          <div className="mt-4 pt-4 border-t">
-            <div className="text-xs text-gray-500">
-              <p className="mb-1">* Token counts are approximate</p>
-              <p>* Costs calculated using May 2025 pricing</p>
+            
+            <div className="mt-4 pt-4 border-t">
+              <div className="text-xs text-gray-500">
+                <p className="mb-1">* Token counts are approximate</p>
+                <p>* Costs calculated using May 2025 pricing</p>
+              </div>
             </div>
           </div>
         </div>
